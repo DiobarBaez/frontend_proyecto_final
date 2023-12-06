@@ -3,7 +3,7 @@
     <v-container fluid>
       <v-row align="center" justify="center">
         <v-col cols="12" sm="8" md="6">
-          <default-view />
+          <login-view />
         </v-col>
       </v-row>
     </v-container>
@@ -11,5 +11,5 @@
 </template>
 
 <script setup>
-import DefaultView from './View.vue';
+  import LoginView from './LoginView.vue';
 </script>

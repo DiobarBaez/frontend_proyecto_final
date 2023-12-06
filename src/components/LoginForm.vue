@@ -7,70 +7,69 @@
       </v-form>
 
       <!-- Feedback message -->
-      <v-snackbar v-model="feedbackMessage" :timeout="3000" color="#313844">
-        {{ feedbackMessage }}
+      <v-snackbar v-model="feedbackMessage.show" :timeout="3000" :color="feedbackMessage.color">
+        {{ feedbackMessage.message }}
       </v-snackbar>
+
     </v-container>
   </template>
 
   <script setup>
-  import { ref } from 'vue';
-  import { useRouter } from 'vue-router';
-  import axios from 'axios';
-  import store from '../store/store';
+  
+    import { ref } from 'vue';
+    import { useRouter } from 'vue-router';
+    import axios from 'axios';
+    import store from '../store/store';
 
-  const email = ref('');
-  const password = ref('');
-  const feedbackMessage = ref('Bienvenido');
-  const router = useRouter();
-  const API_URL = "http://localhost:5038/api/1.0/";
+    const email = ref('');
+    const password = ref('');
+    const feedbackMessage = ref({
+      show: false,
+      message: '',
+      color: '',
+    });
+    const router = useRouter();
+    const API_URL = "http://localhost:5038/api/1.0/";
 
-  const login = async (event) => {
-    event.preventDefault();
+    const login = async (event) => {
+      event.preventDefault();
 
-    try {
-      // Hacer una solicitud al backend utilizando Axios
-      const response = await axios.post(API_URL + 'users/authenticate', {
-        email: email.value,
-        password: password.value,
-      });
+      try {
+        // Hacer una solicitud al backend utilizando Axios
+        const response = await axios.post(API_URL + 'users/authenticate', {
+          email: email.value,
+          password: password.value,
+        });
 
-      if (response.status === 200) {
-        const userData = response.data.user;
-        // Almacena userData globalmente (puedes usar Vuex u otra solución)
-        // Despacha una acción para actualizar el estado con los datos del usuario
-        if(userData.rol != "Paciente"){
+        if (response.status === 200) {
+          const userData = response.data.user;
           store.dispatch('updateUserData', userData);
-
-          const routeName = 'Home';
-          console.log("Redirigiendo a:", routeName);
-          navigateTo(routeName);
-
           // Muestra mensaje de éxito
           showFeedbackMessage('¡Inicio de sesión exitoso!', 'success');
-        }else{
-          showFeedbackMessage('El usuario no tiene los permisos necesarios', 'failed');
+          const routeName = 'Home';
+          console.log("Redirigiendo a:", routeName);
+          navigateTo(routeName);  
+        } else {
+          // Muestra mensaje de error
+          showFeedbackMessage(response.data.message, 'error');
         }
-      } else {
-        // Muestra mensaje de error
-        showFeedbackMessage(response.data.message, 'error');
+      } catch (error) {
+        // Muestra mensaje de error de red u otros errores
+        showFeedbackMessage('Usuario o contraseña no validas', 'error');
+        console.error('Error durante la autenticación:', error);
       }
-    } catch (error) {
-      // Muestra mensaje de error de red u otros errores
-      showFeedbackMessage('Usuario o contraseña no validas', 'error');
-      console.error('Error durante la autenticación:', error);
-    }
-  };
+    };
 
-  const navigateTo = (routeName) => {
-    router.push({ name: routeName });
-  };
+    const navigateTo = (routeName) => {
+      router.push({ name: routeName });
+    };
 
-  const showFeedbackMessage = (message, type) => {
-    feedbackMessage.value = message;
-    // Establece el tipo de color del mensaje
-    feedbackMessage.color = type;
-  };
+    const showFeedbackMessage = (message, type) => {
+      feedbackMessage.value.message = message;
+      feedbackMessage.value.color = type;
+      feedbackMessage.value.show = true;
+    };
+
   </script>
 
   <style scoped>
@@ -82,8 +81,7 @@
     height: 85vh;
     background-color: #FFFF; /* Agrega esta línea para establecer el color de fondo */
   }
-
-
+  
   .login-form {
     max-width: 400px;
     width: 100%;

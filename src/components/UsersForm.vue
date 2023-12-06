@@ -32,20 +32,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in users" :key="user.id">
+              <tr v-for="user in users" :key="user.name">
                 <td>{{ user.name }}</td>
                 <td>{{ user.rol }}</td>
                 <td>{{ user.email }}</td>
                 <td class="centered-buttons">
-                  <v-btn @click="openUpdateUserModal(user)" color="warning">Update</v-btn>
-                  <v-btn @click="deleteUserConfirmation(user.id)" color="error">Delete</v-btn>
-
+                  <v-btn 
+                    @click="openUpdateUserModal(user)" 
+                    color="warning">
+                    Update
+                  </v-btn>
+                  <v-btn 
+                    @click="deleteUserConfirmation(user)" 
+                    color="error">
+                    Delete
+                  </v-btn>  
                 </td>
               </tr>
             </tbody>
+            
           </table>
         </v-col>
-
       </v-row>
 
 
@@ -55,30 +62,11 @@
           <v-btn @click="openAddUserModal" color="#313844">Add User</v-btn>
         </v-col>
       </v-row>
-
+        
       <!-- Modal for adding a new user -->
       <v-dialog v-model="isAddUserModalActive">
         <v-card>
-          <v-card-title>
-            <span class="headline">Add User</span>
-          </v-card-title>
-          <v-card-text>
-            <v-text-field v-model="newUser.name" label="Name"></v-text-field>
-            <v-text-field v-model="newUser.rol" label="Role"></v-text-field>
-            <v-text-field v-model="newUser.email" label="Email"></v-text-field>
-            <v-text-field v-model="newUser.password" label="Password"></v-text-field>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn @click="addNewUser" color="#313844">Add</v-btn>
-            <v-btn @click="closeAddUserModal">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
-      <!-- Modal for adding a new user -->
-      <v-dialog v-model="isAddUserModalActive">
-        <v-card>
-          <v-card-title>
+          <v-card-title class="cabeceras">
             <span class="headline">Add User</span>
           </v-card-title>
           <v-card-text>
@@ -92,17 +80,17 @@
             <v-text-field v-model="newUser.password" label="Password"></v-text-field>
           </v-card-text>
           <v-card-actions>
-            <v-btn @click="addNewUser" color="#313844">Add</v-btn>
+            <v-btn @click="addNewUser" color="primary">Add</v-btn>
             <v-btn @click="closeAddUserModal">Cancel</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
 
-
+        
       <!-- Modal for updating a user -->
       <v-dialog v-model="isUpdateUserModalActive" >
         <v-card>
-          <v-card-title>
+          <v-card-title class="cabeceras">
             <span class="headline">Update User</span>
           </v-card-title>
           <v-card-text>
@@ -116,18 +104,16 @@
             <v-text-field v-model="updatedUser.password" label="Password"></v-text-field>
           </v-card-text>
           <v-card-actions>
-            <v-btn @click="updateUser" color="#313844">Update</v-btn>
+            <v-btn @click="updateUser" color="warning">Update</v-btn>
             <v-btn @click="closeUpdateUserModal">Cancel</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
 
-
-
       <!-- Modal for confirming user deletion -->
       <v-dialog v-model="isDeleteUserConfirmationActive">
         <v-card>
-          <v-card-title>
+          <v-card-title class="cabeceras">
             <span class="headline">Confirm Delete</span>
           </v-card-title>
           <v-card-text>
@@ -141,8 +127,8 @@
       </v-dialog>
 
       <!-- Feedback message -->
-      <v-snackbar v-model="feedbackMessage" :timeout="1000" color="#313844">
-        {{ feedbackMessage }}
+      <v-snackbar v-model="feedbackMessage.show" :timeout="3000" :color="feedbackMessage.color">
+        {{ feedbackMessage.message }}
       </v-snackbar>
 
     </v-container>
@@ -153,54 +139,85 @@
 
 <script setup>
 
-
   import { ref, onMounted } from 'vue';
   import axios from 'axios';
   import { watch } from 'vue';
-
-
+  import store from '../store/store';
+  import _ from 'lodash';
   
-  const API_URL = "http://localhost:5038/";
-  const newUser = ref({
-    id:"",
+  const API_URL = "http://localhost:5038/api/1.0/";
+  var newUser = ref({
     name: "",
     rol: "",
     email: "",
     password: "",
   });
-  const updatedUser = ref({
-    id:"",
+  var updatedUser = ref({
     name: "",
     rol: "",
     email: "",
     password: "",
   });
+
   const users = ref([]);
+  const aux = ref([]);
+  const medicos = ref([]);
+  const medico = ref([]);
   const isUpdateUserModalActive = ref(false);
   const isDeleteUserConfirmationActive = ref(false);
   const selectedUser = ref(null);
-  const feedbackMessage = ref("");
+  const feedbackMessage = ref({
+    show: false,
+    message: '',
+    color: '',
+  });
   const isAddUserModalActive = ref(false);
-  const roleOptions = [
-    "Administrador",
-    "Medico",
-    "Paciente",
-    // Agrega más roles según tus necesidades
-  ];
+  var roleOptions = ref(false);
+  const userData = ref(store.getters.getUserData);
   const searchTerm = ref("");
   const originalUsers = ref([]); // Mantén una copia original de los usuarios
 
 
+
   const refreshData = async () => {
     try {
-      const response = await axios.get(API_URL + "api/pvvcapp/GetUsers");
-      users.value = response.data;
-      // Actualiza originalUsers con los datos más recientes de users
-      originalUsers.value = [...users.value];
+      const response = await axios.get(API_URL + "users/");
+      users.value = response.data.data;
+      aux.value = response.data.data;
+
+      if (Array.isArray(users.value)) {
+        if (userData.value.rol === "Administrador") {
+          originalUsers.value = [...users.value];
+        } else {
+
+          originalUsers.value = [...users.value];
+          console.log(users.value);
+        }
+      } else {
+        console.error("Error: users.value is not an array");
+      }
+
+      filterMedicos();
+      filterMedico();
     } catch (error) {
       console.error("Error fetching users:", error);
     }
   };
+
+
+
+  const filterMedicos = () => {
+    medicos.value = aux.value
+      .filter(user => user.rol === "Medico")
+      .map(user => user.name);
+  };
+
+  const filterMedico = () => {
+    medico.value = aux.value
+      .filter(user =>user.name === userData.value.name)
+      .map(user => user.name);
+  };
+
 
   const addNewUser = async () => {
     // Verificar si el name y email ya existen
@@ -208,37 +225,44 @@
     const isDuplicateEmail = users.value.some((user) => user.email === newUser.value.email);
 
     if (isDuplicateName || isDuplicateEmail) {
-      feedbackMessage.value = "El name o email ya existen. Introduce valores únicos.";
+      showFeedbackMessage("El name o email ya existen. Introduce valores únicos.", 'warning');
       return; // No permite agregar usuarios duplicados
     }
 
+
     try {
-      const response = await axios.post(API_URL + "api/pvvcapp/AddUser", newUser.value);
+      const response = await axios.post(API_URL + "users/", newUser.value);
       refreshData();
-      feedbackMessage.value = response.data.message;
+      showFeedbackMessage(response.data.message, 'success');
+
       newUser.value = {};
       closeAddUserModal();
     } catch (error) {
-      console.error("Error adding user:", error);
-      feedbackMessage.value = "Error adding user.";
+      showFeedbackMessage("Error al intentar añadir un nuevo usuario", 'error');
     }
   };
 
 
-  const deleteUserConfirmation = (id) => {
-    selectedUser.value = id;
-    isDeleteUserConfirmationActive.value = true;
+  const deleteUserConfirmation = (user) => {
+    selectedUser.value = user;
+    updatedUser.value = { ...user };
+    if(userData.value.rol === "Administrador"){
+      isDeleteUserConfirmationActive.value = true;
+    }else{
+        showFeedbackMessage("No cuentas con los permisos necesarios para realizar esta accion.", 'warning');
+    }
   };
+
 
   const deleteUserConfirmed = async () => {
     if (selectedUser.value !== null) {
       try {
-        const response = await axios.delete(API_URL + `api/pvvcapp/DeleteUser/${selectedUser.value}`);
+        const response = await axios.delete(API_URL + `users/${selectedUser.value.name}`);
         refreshData();
-        feedbackMessage.value = response.data.message;
+        showFeedbackMessage(response.data.message, 'success');
       } catch (error) {
         console.error("Error deleting user:", error);
-        feedbackMessage.value = "Error deleting user.";
+        showFeedbackMessage("Error al eliminar usuario.", 'error');
       } finally {
         selectedUser.value = null;
         isDeleteUserConfirmationActive.value = false;
@@ -251,10 +275,17 @@
     isDeleteUserConfirmationActive.value = false;
   };
 
+
+
   const openUpdateUserModal = (user) => {
     selectedUser.value = user;
-    updatedUser.value = { ...user };
-    isUpdateUserModalActive.value = true;
+    updatedUser.value = _.cloneDeep(user);
+
+    if (userData.value.rol === "Administrador") {
+      isUpdateUserModalActive.value = true;
+    } else {
+        showFeedbackMessage("No cuentas con los permisos necesarios para realizar esta acción.", 'warning');
+    }
   };
 
   const closeUpdateUserModal = () => {
@@ -264,28 +295,40 @@
   };
 
   const updateUser = async () => {
-    // Verificar si el name o el email ya existen para otros usuarios
-    const isDuplicateName = users.value.some((user) => user.name === updatedUser.value.name && user.id !== selectedUser.value.id);
-    const isDuplicateEmail = users.value.some((user) => user.email === updatedUser.value.email && user.id !== selectedUser.value.id);
 
-    if (isDuplicateName || isDuplicateEmail) {
-      feedbackMessage.value = "El name o email ya existen para otros usuarios. Introduce valores únicos.";
-      return; // No permite actualizar usuarios con datos duplicados
-    }
+    if (Object.values(updatedUser.value).every(value => !!value)) {
 
-    try {
-      const response = await axios.put(API_URL + `api/pvvcapp/UpdateUser/${selectedUser.value.id}`, updatedUser.value);
-      refreshData();
-      feedbackMessage.value = response.data.message;
-      closeUpdateUserModal();
-    } catch (error) {
-      console.error("Error updating user:", error);
-      feedbackMessage.value = "Error updating user.";
+      const isDuplicateName = users.value.some((user) => user.name === updatedUser.value.name && user.id !== selectedUser.value.id);
+      const isDuplicateEmail = users.value.some((user) => user.email === updatedUser.value.email && user.id !== selectedUser.value.id);
+
+      if (isDuplicateName || isDuplicateEmail) {
+        showFeedbackMessage("El name o email ya existen para otros usuarios. Introduce valores únicos.", 'warning');
+        return; // No permite actualizar usuarios con datos duplicados
+      }
+
+      try {
+        //console.log(selectedUser.value.name);
+        //consolconsole.loge.log(updatedUser.value);
+        const response = await axios.patch(API_URL + `users/${selectedUser.value.name}`, updatedUser.value);
+        refreshData();
+        showFeedbackMessage(response.data.message, 'success');
+        closeUpdateUserModal();
+      } catch (error) {
+        showFeedbackMessage("Error al actualizar informaciion del usuario.", 'error');
+      }
+    }else{
+      showFeedbackMessage("Para actualizar tiene que proporcionar todos los campos", 'warning');
     }
   };
 
 
   const openAddUserModal = () => {
+    newUser = ref({
+      name: "",
+      rol: "",
+      email: "",
+      password: "",
+    });
     isAddUserModalActive.value = true;
   };
 
@@ -304,11 +347,18 @@
         return (
           user.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
           user.rol.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.value.toLowerCase())
+          user.email.toLowerCase().includes(searchTerm.value.toLowerCase()) 
         );
       });
     }
   };
+
+  const showFeedbackMessage = (message, type) => {
+    feedbackMessage.value.message = message;
+    feedbackMessage.value.color = type;
+    feedbackMessage.value.show = true;
+  };
+
 
   onMounted(async () => {
     await refreshData();
@@ -317,6 +367,15 @@
   });
 
   watch(searchTerm, filterUsers);
+
+  
+  if (userData.value.rol === "Administrador"){
+    roleOptions.value = [
+      "Administrador",
+      "Tecnico",
+      // Agrega más roles según tus necesidades
+    ];
+  }
     
 
 </script>
@@ -352,14 +411,21 @@
     .v-dialog {
       max-width: 400px;
       margin: 0 auto;
-      box-shadow: 0px 4px 8px #313844; /* Sombra suave */
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Sombra suave */
       border-radius: 8px; /* Esquinas redondeadas */
     }
 
-    .v-card-title {
+    .cabeceras {
       background-color: #313844; /* Color de fondo del encabezado */
       color: #fff; /* Color del texto del encabezado */
       padding: 16px;
+      border-top-left-radius: 8px; /* Esquina superior izquierda redondeada */
+      border-top-right-radius: 8px; /* Esquina superior derecha redondeada */
+    }
+
+    .cabecera_secundaria{
+      border-style: ridge;
+      font-size: small;
       border-top-left-radius: 8px; /* Esquina superior izquierda redondeada */
       border-top-right-radius: 8px; /* Esquina superior derecha redondeada */
     }
@@ -460,7 +526,6 @@
     white-space: nowrap; /* Evita que el contenido se divida en varias líneas */
   }
 
-
 </style>
 
 
@@ -489,4 +554,4 @@
     border-top-right-radius: 8px; /* Borde superior derecho redondeado */
     font-size: 20px; /* Tamaño de fuente del título */
   }
---> 
+-->
